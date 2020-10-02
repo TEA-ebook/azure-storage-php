@@ -43,6 +43,7 @@ class ServiceException extends \LogicException
     private $response;
     private $errorText;
     private $errorMessage;
+    private $errorCode = null;
 
     /**
      * Constructor
@@ -67,7 +68,7 @@ class ServiceException extends \LogicException
         $this->code         = $response->getStatusCode();
         $this->response     = $response;
         $this->errorText    = $response->getReasonPhrase();
-        $this->errorMessage = self::parseErrorMessage($response);
+        $this->parseErrorMessage($response);
     }
 
     /**
@@ -79,7 +80,7 @@ class ServiceException extends \LogicException
      *
      * @return string
      */
-    protected static function parseErrorMessage(ResponseInterface $response)
+    protected function parseErrorMessage(ResponseInterface $response)
     {
         //try to parse using xml serializer, if failed, return the whole body
         //as the error message.
@@ -103,10 +104,15 @@ class ServiceException extends \LogicException
             } else {
                 $errorMessage = $response->getBody();
             }
+
+            if (array_key_exists(Resources::XTAG_CODE, $parsedArray)) {
+                $this->errorCode = $parsedArray[Resources::XTAG_CODE];
+            }
         } catch (\Exception $e) {
             $errorMessage = $response->getBody();
         }
-        return $errorMessage;
+
+        $this->errorMessage = $errorMessage;
     }
 
     /**
@@ -128,6 +134,17 @@ class ServiceException extends \LogicException
     {
         return $this->errorMessage;
     }
+
+    /**
+     * Gets Azure error code.
+     *
+     * @return string
+     */
+    public function getErrorCode()
+    {
+        return $this->errorCode;
+    }
+
 
     /**
      * Gets the request ID of the failure.
