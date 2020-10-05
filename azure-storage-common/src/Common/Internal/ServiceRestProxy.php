@@ -242,10 +242,21 @@ class ServiceRestProxy extends RestProxy
                     $statusCode
                 );
             },
-            'rejected' => function ($reason, $index) {
-                //Still rejected even if the retry logic has been applied.
-                //Throwing exception.
-                throw $reason;
+            'rejected' => function ($reason, $index) use ($statusCode) {
+                if (!($reason instanceof RequestException)) {
+                    throw $reason;
+                }
+                $response = $reason->getResponse();
+                if ($response != null) {
+                    self::throwIfError(
+                        $response,
+                        $statusCode
+                    );
+                } else {
+                    //if could not get response but promise rejected, throw reason.
+                    throw $reason;
+                }
+                return $response;
             }
         ]);
 
